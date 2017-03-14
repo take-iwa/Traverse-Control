@@ -7,73 +7,69 @@ using System.Windows.Forms;
 using Phidgets;
 using Phidgets.Events;
 using System.Reflection;
-// using System.Threading.Tasks;
-using System.Net.Sockets;
 
 namespace Bridge_full
 {
-    //張力ステータス
+    // 張力ステータス
     struct TensionStatus
     {
-        public double TenInt;      //初期張力からの閾値
-        public double Ten;         //現在の張力
-        public double TenMax;      //最大許容張力
-        public double TenMin;      //最小許容張力
-        public double Slope;       //キャリブレーション：傾き
-        public double Intercept;   //キャリブレーション：Y切片
+        public double TenInt;      // 初期張力からの閾値
+        public double Ten;         // 現在の張力
+        public double TenMax;      // 最大許容張力
+        public double TenMin;      // 最小許容張力
+        public double Slope;       // キャリブレーション：傾き
+        public double Intercept;   // キャリブレーション：Y切片
     }
 
-    //張力データ
+    // 張力データ
     struct BridgeDataEventData
     {
-        public int Index;          //ポート
-        public double Value;       //データ
+        public int Index;          // ポート
+        public double Value;       // データ
     }
 
-    public partial class Form1 : Form
+    public partial class ControlForm : Form
     {
-        public const int TENSION_DATA_RATE = 496;                   //サンプリング周波数(8ms刻み)
-        public const int TENSION_SAMPLE_NUM = 120;                  //サンプル数 
-        public Color TENSION_STATUS_NONE = Color.YellowGreen;       //張力ステータス 正常
-        public Color TENSION_STATUS_WIDTH_WIDE = Color.Tomato;      //張力ステータス 幅 広い
-        public Color TENSION_STATUS_WIDTH_NARROW = Color.SkyBlue;   //張力ステータス 幅 狭い
-        public Color TENSION_STATUS_MORE = Color.Crimson;           //張力ステータス 範囲超え
-        public Color TENSION_STATUS_LESS = Color.DodgerBlue;        //張力ステータス 範囲未満
-        private List<double> initialdataL = new List<double>();     //初期左張力リスト
-        private List<double> initialdataR = new List<double>();     //初期右張力リスト
-        private TensionStatus LeftTenStatus;                        //左張力ステータス
-        private TensionStatus RightTenStatus;                       //右張力ステータス
-        public double PermiRange;                                   //許容範囲
-        public string LogFileName;                                  //ログファイル名
+        private const int TENSION_DATA_RATE = 496;                  // サンプリング周波数(8ms刻み)
+        private const int TENSION_INIT_SAMPLE_NUM = 120;            // 初期値サンプル数
+        private const int TENSION_CTR_SAMPLE_NUM = 60;              // 制御サンプル数
+        private Color TENSION_STATUS_NONE = Color.YellowGreen;      // 張力ステータス 正常
+        private Color TENSION_STATUS_WIDTH_WIDE = Color.Tomato;     // 張力ステータス 幅 広い
+        private Color TENSION_STATUS_WIDTH_NARROW = Color.SkyBlue;  // 張力ステータス 幅 狭い
+        private Color TENSION_STATUS_MORE = Color.Crimson;          // 張力ステータス 範囲超え
+        private Color TENSION_STATUS_LESS = Color.DodgerBlue;       // 張力ステータス 範囲未満
+        private List<double> initialdataL = new List<double>();     // 初期左張力リスト
+        private List<double> initialdataR = new List<double>();     // 初期右張力リスト
+        private List<double> dataL = new List<double>();            // 初期右張力リスト
+        private List<double> dataR = new List<double>();            // 初期右張力リスト
+        private TensionStatus LeftTenStatus;                        // 左張力ステータス
+        private TensionStatus RightTenStatus;                       // 右張力ステータス
+        private double PermiRange;                                  // 許容範囲(%)
+        private string LogFileName;                                 // ログファイル名
 
         private Bridge br;
         private ErrorEventBox errorBox;
         private BridgeDataEventData conVlu;
 
-        private String currentServer = null;
-        private int currentPort;
-        private TcpClient tcpClient = null;
-        private NetworkStream stream = null;
-
-        public Form1()
+        public ControlForm()
         {
             InitializeComponent();
             errorBox = new ErrorEventBox();
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private void ControlForm_Load(object sender, EventArgs e)
         {
             br = new Bridge();
 
-            br.Attach += new AttachEventHandler(br_Attach);
-            br.Detach += new DetachEventHandler(br_Detach);
-            br.Error += new Phidgets.Events.ErrorEventHandler(br_Error);
+            br.Attach += new AttachEventHandler(Br_Attach);
+            br.Detach += new DetachEventHandler(Br_Detach);
+            br.Error += new Phidgets.Events.ErrorEventHandler(Br_Error);
 
-            br.BridgeData += new BridgeDataEventHandler(br_Data);
+            br.BridgeData += new BridgeDataEventHandler(Br_Data);
 
-            openCmdLine(br);
+            OpenCmdLine(br);
 
-            //出力先
+            // 出力先
             string appPath = Assembly.GetExecutingAssembly().Location;
             string logPath = Path.GetDirectoryName(appPath)+"\\log";
             if (!Directory.Exists(logPath))
@@ -82,52 +78,12 @@ namespace Bridge_full
             }
             Directory.SetCurrentDirectory(logPath);
 
-            //logファイル名更新
+            // logファイル名更新
             LogFileName = "log_" + DateTime.Now.ToString("yyMMdd_HHmmss");
         }
 
-        // PLC通信系
-        private void CloseCurrentSession()
-        {
-            stream.Close();
-            tcpClient.Close();
-            stream = null;
-            tcpClient = null;
-            textBox3.Text += ("Close Session\r\n");
-        }
-
-        private void SendTcpRequest(String server, int port, String command)
-        {
-            try
-            {
-                if ((currentServer != server || currentPort != port) && currentServer != null)
-                {
-                    CloseCurrentSession();
-                    currentServer = server;
-                    currentPort = port;
-                }
-
-                if (tcpClient == null)
-                {
-                    tcpClient = new TcpClient(server, port);
-                    stream = tcpClient.GetStream();
-                }
-
-                Byte[] data;
-                data = System.Text.Encoding.ASCII.GetBytes(command + "\r");
-                stream.Write(data, 0, data.Length);
-                data = new Byte[65535];
-                textBox3.Text += ("Send:"+ command +"\r\n");
-
-            }
-            catch (Exception e)
-            {
-                textBox3.Text += ("Message: " +e.Message+"\n"+"StackTrace: "+e.StackTrace+ "\r\n");
-            }
-        }
-
-        //Bridge Attach event handler...populate the fields and controls
-        void br_Attach(object sender, AttachEventArgs e)
+        // 接続　Bridge Attach event handler...populate the fields and controls
+        void Br_Attach(object sender, AttachEventArgs e)
         {
             Bridge attached = (Bridge)sender;
             attachedTxt.Text = attached.Attached.ToString();
@@ -170,8 +126,8 @@ namespace Bridge_full
             LeftSlope.Text = "1";
         }
 
-        //Bridge Detach event handler...Clear all the fields and disable all the controls
-        void br_Detach(object sender, DetachEventArgs e)
+        // 切断　Bridge Detach event handler...Clear all the fields and disable all the controls
+        void Br_Detach(object sender, DetachEventArgs e)
         {
             Bridge detached = (Bridge)sender;
             attachedTxt.Text = detached.Attached.ToString();
@@ -209,8 +165,8 @@ namespace Bridge_full
             LeftSlope.Clear();
         }
 
-        //error handler...display the error description in a messagebox
-        void br_Error(object sender, Phidgets.Events.ErrorEventArgs e)
+        // 接続エラー処理　error handler...display the error description in a messagebox
+        void Br_Error(object sender, Phidgets.Events.ErrorEventArgs e)
         {
             Phidget phid = (Phidget)sender;
             DialogResult result;
@@ -222,7 +178,7 @@ namespace Bridge_full
                         "Authentication error: This server requires a password.", "Please enter the password, or cancel.");
                     result = dialog.ShowDialog();
                     if (result == DialogResult.OK)
-                        openCmdLine(phid, dialog.password);
+                        OpenCmdLine(phid, dialog.password);
                     else
                         Environment.Exit(0);
                     break;
@@ -234,22 +190,22 @@ namespace Bridge_full
             errorBox.addMessage(DateTime.Now.ToLongDateString() + " " + DateTime.Now.ToLongTimeString() + ": " + e.Description);
         }
 
-        //BridgeChange event handler...display the data from a bridge change event
-        void br_Data(object sender, BridgeDataEventArgs e)
+        // 変位イベント　BridgeChange event handler...display the data from a bridge change event
+        void Br_Data(object sender, BridgeDataEventArgs e)
         {
-            //キャリブレーション
+            // キャリブレーション
             BridgeDataEventData convertValue = AddCalibretion(e);
 
-            //初期値未設定
+            // 初期値未設定
             if ((LeftTenStatus.TenInt == 0) | (RightTenStatus.TenInt == 0))
             {
-                //初期値設定へ
+                // 初期値設定へ
                 InitialTensionSetting(convertValue);
             }
-            //初期値設定済
+            // 初期値設定済
             else
             {
-                //接圧監視へ
+                // 接圧監視へ
                 MonitorTension(convertValue);
             }
 
@@ -266,8 +222,8 @@ namespace Bridge_full
             }
         }
 
-        //Enabled
-        private void enCheck_CheckedChanged(object sender, EventArgs e)
+        // 有効化変更　Enabled
+        private void EnCheck_CheckedChanged(object sender, EventArgs e)
         {
             br.bridges[(int)bridgeCmbL.SelectedIndex].Enabled = enCheck.Checked;
             br.bridges[(int)bridgeCmbR.SelectedIndex].Enabled = enCheck.Checked;
@@ -282,8 +238,8 @@ namespace Bridge_full
             }
         }
 
-        //Gain
-        private void gainCmb_SelectedIndexChanged(object sender, EventArgs e)
+        // ゲイン設定変更　Gain
+        private void GainCmb_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (gainCmb.SelectedIndex == 0)
             {
@@ -323,8 +279,8 @@ namespace Bridge_full
             }
         }
 
-        //Gain Select
-        int gainLUT(BridgeInput.Gains val)
+        // ゲイン選択　Gain Select
+        int GainLUT(BridgeInput.Gains val)
         {
             if (val == BridgeInput.Gains.GAIN_1)
                 return 0;
@@ -342,11 +298,11 @@ namespace Bridge_full
             return 0;
         }
 
-        //Selected Left Tension's Index
-        private void bridgeCmbL_SelectedIndexChanged(object sender, EventArgs e)
+        // 左チェンネル変更　Selected Left Tension's Index
+        private void BridgeCmbL_SelectedIndexChanged(object sender, EventArgs e)
         {
             enCheck.Checked = br.bridges[(int)bridgeCmbL.SelectedIndex].Enabled;
-            gainCmb.SelectedIndex = gainLUT(br.bridges[(int)bridgeCmbL.SelectedIndex].Gain);
+            gainCmb.SelectedIndex = GainLUT(br.bridges[(int)bridgeCmbL.SelectedIndex].Gain);
             try
             {
                 leftValueTxt.Text = br.bridges[(int)bridgeCmbL.SelectedIndex].BridgeValue.ToString();
@@ -362,11 +318,11 @@ namespace Bridge_full
             }
         }
 
-        //Selected Right Tension's Index
-        private void bridgeCmbR_SelectedIndexChanged(object sender, EventArgs e)
+        // 右チャンネル変更　Selected Right Tension's Index
+        private void BridgeCmbR_SelectedIndexChanged(object sender, EventArgs e)
         {
             enCheck.Checked = br.bridges[(int)bridgeCmbR.SelectedIndex].Enabled;
-            gainCmb.SelectedIndex = gainLUT(br.bridges[(int)bridgeCmbR.SelectedIndex].Gain);
+            gainCmb.SelectedIndex = GainLUT(br.bridges[(int)bridgeCmbR.SelectedIndex].Gain);
             try
             {
                 rightValueTxt.Text = br.bridges[(int)bridgeCmbR.SelectedIndex].BridgeValue.ToString();
@@ -382,42 +338,43 @@ namespace Bridge_full
             }
         }
 
-        //Data Rage 
-        private void dataRateBar_Scroll(object sender, EventArgs e)
+        // サンプリング周波数変更　Data Rage 
+        private void DataRateBar_Scroll(object sender, EventArgs e)
         {
             dataRateBox.Text = (dataRateBar.Value * 8).ToString();
             br.DataRate = dataRateBar.Value * 8;
         }
 
-        //Initial Left Value
-        private void initialLeftValueTxt_TextChanged(object sender, EventArgs e)
+        // 左基準値変更　Initial Left Value
+        private void InitialLeftValueTxt_TextChanged(object sender, EventArgs e)
         {
             LeftTenStatus.TenInt = double.Parse(initialLeftValueTxt.Text);
-            LeftTenStatus.TenMax = LeftTenStatus.TenInt + PermiRange;
-            LeftTenStatus.TenMin = LeftTenStatus.TenInt - PermiRange;
-            //initialdataL.Clear();
+            LeftTenStatus.TenMax = LeftTenStatus.TenInt * (1 + (PermiRange / 100));
+            LeftTenStatus.TenMin = LeftTenStatus.TenInt * (1 - (PermiRange / 100));
         }
 
-        //Initial Right Value
-        private void initialRightValueTxt_TextChanged(object sender, EventArgs e)
+        // 右基準値変更　Initial Right Value
+        private void InitialRightValueTxt_TextChanged(object sender, EventArgs e)
         {
             RightTenStatus.TenInt = double.Parse(initialRightValueTxt.Text);
-            RightTenStatus.TenMax = RightTenStatus.TenInt + PermiRange;
-            RightTenStatus.TenMin = RightTenStatus.TenInt - PermiRange;
-            //initialdataR.Clear();
+            RightTenStatus.TenMax = RightTenStatus.TenInt * (1 + (PermiRange / 100));
+            RightTenStatus.TenMin = RightTenStatus.TenInt * (1 - (PermiRange / 100));
         }
 
-        //Permissible Range
-        private void permiRangeTxt_TextChanged(object sender, EventArgs e)
+        // 許容範囲設定変更　Permissible Range
+        private void PermiRangeTxt_TextChanged(object sender, EventArgs e)
         {
             PermiRange = double.Parse(permiRangeTxt.Text);
-            LeftTenStatus.TenMax = LeftTenStatus.TenInt + PermiRange;
-            LeftTenStatus.TenMin = LeftTenStatus.TenInt - PermiRange;
-            RightTenStatus.TenMax = RightTenStatus.TenInt + PermiRange;
-            RightTenStatus.TenMin = RightTenStatus.TenInt - PermiRange;
+            if (PermiRange > 0)
+            {
+                LeftTenStatus.TenMax = LeftTenStatus.TenInt * (1 + (PermiRange / 100));
+                LeftTenStatus.TenMin = LeftTenStatus.TenInt * (1 - (PermiRange / 100));
+                RightTenStatus.TenMax = RightTenStatus.TenInt * (1 + (PermiRange / 100));
+                RightTenStatus.TenMin = RightTenStatus.TenInt * (1 - (PermiRange / 100));
+            }
         }
 
-        //キャリブレーション
+        // キャリブレーション
         BridgeDataEventData AddCalibretion(BridgeDataEventArgs e)
         {
             try
@@ -445,11 +402,11 @@ namespace Bridge_full
             return conVlu;
         }
 
-        //初期値設定
+        // 初期値設定
         private void InitialTensionSetting(BridgeDataEventData e)
         {
-            //初期値取得
-            if ((initialdataL.Count < TENSION_SAMPLE_NUM) | (initialdataR.Count < TENSION_SAMPLE_NUM))
+            // 初期値取得
+            if ((initialdataL.Count < TENSION_INIT_SAMPLE_NUM) | (initialdataR.Count < TENSION_INIT_SAMPLE_NUM))
             {
                 if (e.Index == (int)bridgeCmbL.SelectedIndex)
                     initialdataL.Add(e.Value);
@@ -459,7 +416,7 @@ namespace Bridge_full
             else
             {
                 double sum = 0;
-                //初期値設定(平均値)
+                // 初期値設定(平均値)
                 if (LeftTenStatus.TenInt == 0)
                 {
                     foreach (double data in initialdataL)
@@ -468,9 +425,8 @@ namespace Bridge_full
                     }
                     LeftTenStatus.TenInt = (sum / initialdataL.Count);
                     initialLeftValueTxt.Text = LeftTenStatus.TenInt.ToString();
-                    LeftTenStatus.TenMax = LeftTenStatus.TenInt + PermiRange;
-                    //LeftTenStatus.TenMin = LeftTenStatus.TenInt;
-                    LeftTenStatus.TenMin = LeftTenStatus.TenInt - PermiRange;
+                    LeftTenStatus.TenMax = LeftTenStatus.TenInt * (1 + PermiRange / 100);
+                    LeftTenStatus.TenMin = LeftTenStatus.TenInt * (1 - PermiRange / 100);
                     OutputLog(",,,,L_Init," + LeftTenStatus.TenInt.ToString() + "\n");
                 }
                 else if (RightTenStatus.TenInt == 0)
@@ -481,153 +437,130 @@ namespace Bridge_full
                     }
                     RightTenStatus.TenInt = (sum / initialdataR.Count);
                     initialRightValueTxt.Text = RightTenStatus.TenInt.ToString();
-                    RightTenStatus.TenMax = RightTenStatus.TenInt + PermiRange;
-                    //RightTenStatus.TenMin = RightTenStatus.TenInt;
-                    RightTenStatus.TenMin = RightTenStatus.TenInt - PermiRange;
+                    RightTenStatus.TenMax = RightTenStatus.TenInt * (1 + PermiRange / 100);
+                    RightTenStatus.TenMin = RightTenStatus.TenInt * (1 - PermiRange / 100);
                     OutputLog("\n,,,,R_Init," + RightTenStatus.TenInt.ToString() + "\n");
                 }
             }
         }
 
-        //耳糸接圧監視
+        // 耳糸接圧監視
         private void MonitorTension(BridgeDataEventData e)
         {
+            TraverseController trvCtlr = new TraverseController();
+
             //L
             if (e.Index == (int)bridgeCmbL.SelectedIndex)
             {
                 LeftTenStatus.Ten = e.Value;
             }
-            //R
+            // R
             else if (e.Index == (int)bridgeCmbR.SelectedIndex)
             {
                 RightTenStatus.Ten = e.Value;
             }
             else
             {
-                //なし
+                // なし
             }
 
-            //ステータス更新
-            //1) Tl > TlMax、Tr > TrMaxの場合　・・・　両耳高傾向 
+            // ステータス更新
+            // 1) Tl > TlMax、Tr > TrMaxの場合　・・・　両耳高傾向 
             if ((LeftTenStatus.Ten > LeftTenStatus.TenMax) & (RightTenStatus.Ten > RightTenStatus.TenMax))
             {
                 // PLCにコマンド転送
-                if (IpAddressBox.Text.Length > 12)
-                {
-                    SendTcpRequest(IpAddressBox.Text, int.Parse(PortBox.Text), "0");
-                }
+                trvCtlr.TraverseControl();
 
-                //幅広
+                // 幅広
                 widthState.BackColor = TENSION_STATUS_WIDTH_WIDE;
                 leftState.BackColor = TENSION_STATUS_MORE;
                 rightState.BackColor = TENSION_STATUS_MORE;
             }
-            //2) Tl > TlMax、Tr < TrMinの場合・・・　左耳高、右耳低
+            // 2) Tl > TlMax、Tr < TrMinの場合・・・　左耳高、右耳低
             else if ((LeftTenStatus.Ten > LeftTenStatus.TenMax) & (RightTenStatus.Ten < RightTenStatus.TenMin))
             {
                 // PLCにコマンド転送
-                if (IpAddressBox.Text.Length > 12)
-                {
-                    SendTcpRequest(IpAddressBox.Text, int.Parse(PortBox.Text), "1");
-                }
+                trvCtlr.TraverseControl();
 
-                //左寄り
+                // 左寄り
                 widthState.BackColor = TENSION_STATUS_NONE;
                 leftState.BackColor = TENSION_STATUS_MORE;
                 rightState.BackColor = TENSION_STATUS_LESS;
             }
-            //3) Tl > TlMax、Tr = OK の場合・・・　左耳高
+            // 3) Tl > TlMax、Tr = OK の場合・・・　左耳高
             else if ((LeftTenStatus.Ten > LeftTenStatus.TenMax) &
                 (RightTenStatus.Ten > RightTenStatus.TenMin) & (RightTenStatus.Ten < RightTenStatus.TenMax))
             {
                 // PLCにコマンド転送
-                if (IpAddressBox.Text.Length > 12)
-                {
-                    SendTcpRequest(IpAddressBox.Text, int.Parse(PortBox.Text), "2");
-                }
+                trvCtlr.TraverseControl();
 
-                //幅広、左寄り
+                // 幅広、左寄り
                 widthState.BackColor = TENSION_STATUS_WIDTH_WIDE;
                 leftState.BackColor = TENSION_STATUS_MORE;
                 rightState.BackColor = TENSION_STATUS_NONE;
             }
-            //4) Tl < TlMin、Tr > TrMaxの場合・・・　左耳低、右耳高
+            // 4) Tl < TlMin、Tr > TrMaxの場合・・・　左耳低、右耳高
             else if ((LeftTenStatus.Ten < LeftTenStatus.TenMin) & (RightTenStatus.Ten > RightTenStatus.TenMax))
             {
                 // PLCにコマンド転送
-                if (IpAddressBox.Text.Length > 12)
-                {
-                    SendTcpRequest(IpAddressBox.Text, int.Parse(PortBox.Text), "3");
-                }
+                trvCtlr.TraverseControl();
 
-                //右寄り
+                // 右寄り
                 widthState.BackColor = TENSION_STATUS_NONE;
                 leftState.BackColor = TENSION_STATUS_LESS;
                 rightState.BackColor = TENSION_STATUS_MORE;
             }
-            //5) Tl = OK、Tr > TrMaxの場合・・・　右耳高
+            // 5) Tl = OK、Tr > TrMaxの場合・・・　右耳高
             else if ((LeftTenStatus.Ten < LeftTenStatus.TenMax) & (LeftTenStatus.Ten > LeftTenStatus.TenMin) &
                 (RightTenStatus.Ten > RightTenStatus.TenMax))
             {
                 // PLCにコマンド転送
-                if (IpAddressBox.Text.Length > 12)
-                {
-                    SendTcpRequest(IpAddressBox.Text, int.Parse(PortBox.Text), "4");
-                }
+                trvCtlr.TraverseControl();
 
-                //幅広、右寄り
+                // 幅広、右寄り
                 widthState.BackColor = TENSION_STATUS_WIDTH_WIDE;
                 leftState.BackColor = TENSION_STATUS_NONE;
                 rightState.BackColor = TENSION_STATUS_MORE;
             }
-            //6) Tl < TlMin、Tr = OKの場合・・・　左耳低
+            // 6) Tl < TlMin、Tr = OKの場合・・・　左耳低
             else if ((LeftTenStatus.Ten < LeftTenStatus.TenMin) &
                 (RightTenStatus.Ten > RightTenStatus.TenMin) & (RightTenStatus.Ten < RightTenStatus.TenMax))
             {
                 // PLCにコマンド転送
-                if (IpAddressBox.Text.Length > 12)
-                {
-                    SendTcpRequest(IpAddressBox.Text, int.Parse(PortBox.Text), "5");
-                }
+                trvCtlr.TraverseControl();
 
-                //幅狭、右寄り
+                // 幅狭、右寄り
                 widthState.BackColor = TENSION_STATUS_WIDTH_NARROW;
                 leftState.BackColor = TENSION_STATUS_LESS;
                 rightState.BackColor = TENSION_STATUS_NONE;
             }
-            //7) Tl = OK、Tr < TrMinの場合・・・　右耳低
+            // 7) Tl = OK、Tr < TrMinの場合・・・　右耳低
             else if ((LeftTenStatus.Ten < LeftTenStatus.TenMax) & (LeftTenStatus.Ten > LeftTenStatus.TenMin) &
                 (RightTenStatus.Ten < RightTenStatus.TenMin))
             {
                 // PLCにコマンド転送
-                if (IpAddressBox.Text.Length > 12)
-                {
-                    SendTcpRequest(IpAddressBox.Text, int.Parse(PortBox.Text), "6");
-                }
+                trvCtlr.TraverseControl();
 
-                //幅狭、左寄り
+                // 幅狭、左寄り
                 widthState.BackColor = TENSION_STATUS_WIDTH_NARROW;
                 leftState.BackColor = TENSION_STATUS_NONE;
                 rightState.BackColor = TENSION_STATUS_LESS;
             }
-            //8) Tl < TlMin、Tr < TrMinの場合・・・　両耳低傾向
+            // 8) Tl < TlMin、Tr < TrMinの場合・・・　両耳低傾向
             else if ((LeftTenStatus.Ten < LeftTenStatus.TenMin) & (RightTenStatus.Ten < RightTenStatus.TenMin))
             {
                 // PLCにコマンド転送
-                if (IpAddressBox.Text.Length > 12)
-                {
-                    SendTcpRequest(IpAddressBox.Text, int.Parse(PortBox.Text), "7");
-                }
+                trvCtlr.TraverseControl();
 
-                //幅狭
+                // 幅狭
                 widthState.BackColor = TENSION_STATUS_WIDTH_NARROW;
                 leftState.BackColor = TENSION_STATUS_LESS;
                 rightState.BackColor = TENSION_STATUS_LESS;
             }
-            //9) Tl,Tr = OK の場合
+            // 9) Tl,Tr = OK の場合
             else
             {
-                //丁度良い
+                // 丁度良い
                 widthState.BackColor = TENSION_STATUS_NONE;
                 leftState.BackColor = TENSION_STATUS_NONE;
                 rightState.BackColor = TENSION_STATUS_NONE;
@@ -654,16 +587,16 @@ namespace Bridge_full
             }
         }
 
-        //When the form is being close, make sure to stop all the motors and close the Phidget.
-        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        // ウィンドウクローズ処理　When the form is being close, make sure to stop all the motors and close the Phidget.
+        private void ControlForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            br.Attach -= new AttachEventHandler(br_Attach);
-            br.Detach -= new DetachEventHandler(br_Detach);
-            br.Error -= new Phidgets.Events.ErrorEventHandler(br_Error);
+            br.Attach -= new AttachEventHandler(Br_Attach);
+            br.Detach -= new DetachEventHandler(Br_Detach);
+            br.Error -= new Phidgets.Events.ErrorEventHandler(Br_Error);
 
-            br.BridgeData -= new BridgeDataEventHandler(br_Data);
+            br.BridgeData -= new BridgeDataEventHandler(Br_Data);
 
-            //run any events in the message queue - otherwise close will hang if there are any outstanding events
+            // run any events in the message queue - otherwise close will hang if there are any outstanding events
             Application.DoEvents();
 
             br.close();
@@ -671,13 +604,13 @@ namespace Bridge_full
             br = null;
         }
         
-        //Parses command line arguments and calls the appropriate open
+        // コマンドラインから　Parses command line arguments and calls the appropriate open
         #region Command line open functions
-        private void openCmdLine(Phidget p)
+        private void OpenCmdLine(Phidget p)
         {
-            openCmdLine(p, null);
+            OpenCmdLine(p, null);
         }
-        private void openCmdLine(Phidget p, String pass)
+        private void OpenCmdLine(Phidget p, String pass)
         {
             int serial = -1;
             String logFile = null;
@@ -688,7 +621,7 @@ namespace Bridge_full
             String appName = args[0];
 
             try
-            { //Parse the flags
+            { // Parse the flags
                 for (int i = 1; i < args.Length; i++)
                 {
                     if (args[i].StartsWith("-"))

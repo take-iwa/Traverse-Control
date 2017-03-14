@@ -1,6 +1,6 @@
 namespace Bridge_full
 {
-    partial class Form1
+    partial class ControlForm
     {
         /// <summary>
         /// Required designer variable.
@@ -28,6 +28,7 @@ namespace Bridge_full
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ControlForm));
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.numBridgesTxt = new System.Windows.Forms.TextBox();
             this.label24 = new System.Windows.Forms.Label();
@@ -381,7 +382,7 @@ namespace Bridge_full
             this.bridgeCmbR.Name = "bridgeCmbR";
             this.bridgeCmbR.Size = new System.Drawing.Size(50, 20);
             this.bridgeCmbR.TabIndex = 76;
-            this.bridgeCmbR.SelectedIndexChanged += new System.EventHandler(this.bridgeCmbR_SelectedIndexChanged);
+            this.bridgeCmbR.SelectedIndexChanged += new System.EventHandler(this.BridgeCmbR_SelectedIndexChanged);
             // 
             // permiRangeTxt
             // 
@@ -389,7 +390,7 @@ namespace Bridge_full
             this.permiRangeTxt.Name = "permiRangeTxt";
             this.permiRangeTxt.Size = new System.Drawing.Size(117, 19);
             this.permiRangeTxt.TabIndex = 94;
-            this.permiRangeTxt.TextChanged += new System.EventHandler(this.permiRangeTxt_TextChanged);
+            this.permiRangeTxt.TextChanged += new System.EventHandler(this.PermiRangeTxt_TextChanged);
             // 
             // label8
             // 
@@ -398,7 +399,7 @@ namespace Bridge_full
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(116, 12);
             this.label8.TabIndex = 93;
-            this.label8.Text = "Permissible Range(+):";
+            this.label8.Text = "Permissible Range(%):";
             // 
             // label7
             // 
@@ -415,7 +416,7 @@ namespace Bridge_full
             this.initialLeftValueTxt.Name = "initialLeftValueTxt";
             this.initialLeftValueTxt.Size = new System.Drawing.Size(54, 19);
             this.initialLeftValueTxt.TabIndex = 91;
-            this.initialLeftValueTxt.TextChanged += new System.EventHandler(this.initialLeftValueTxt_TextChanged);
+            this.initialLeftValueTxt.TextChanged += new System.EventHandler(this.InitialLeftValueTxt_TextChanged);
             // 
             // dataRateBox
             // 
@@ -461,7 +462,7 @@ namespace Bridge_full
             this.gainCmb.Name = "gainCmb";
             this.gainCmb.Size = new System.Drawing.Size(81, 20);
             this.gainCmb.TabIndex = 58;
-            this.gainCmb.SelectedIndexChanged += new System.EventHandler(this.gainCmb_SelectedIndexChanged);
+            this.gainCmb.SelectedIndexChanged += new System.EventHandler(this.GainCmb_SelectedIndexChanged);
             // 
             // label6
             // 
@@ -503,7 +504,7 @@ namespace Bridge_full
             this.bridgeCmbL.Name = "bridgeCmbL";
             this.bridgeCmbL.Size = new System.Drawing.Size(50, 20);
             this.bridgeCmbL.TabIndex = 76;
-            this.bridgeCmbL.SelectedIndexChanged += new System.EventHandler(this.bridgeCmbL_SelectedIndexChanged);
+            this.bridgeCmbL.SelectedIndexChanged += new System.EventHandler(this.BridgeCmbL_SelectedIndexChanged);
             // 
             // label11
             // 
@@ -533,7 +534,7 @@ namespace Bridge_full
             this.enCheck.TabIndex = 59;
             this.enCheck.Text = "Enabled";
             this.enCheck.UseVisualStyleBackColor = true;
-            this.enCheck.CheckedChanged += new System.EventHandler(this.enCheck_CheckedChanged);
+            this.enCheck.CheckedChanged += new System.EventHandler(this.EnCheck_CheckedChanged);
             // 
             // dataRateBar
             // 
@@ -549,7 +550,7 @@ namespace Bridge_full
             this.dataRateBar.TabIndex = 72;
             this.dataRateBar.TickFrequency = 5;
             this.dataRateBar.Value = 8;
-            this.dataRateBar.Scroll += new System.EventHandler(this.dataRateBar_Scroll);
+            this.dataRateBar.Scroll += new System.EventHandler(this.DataRateBar_Scroll);
             // 
             // label17
             // 
@@ -664,7 +665,7 @@ namespace Bridge_full
             this.label9.TabIndex = 0;
             this.label9.Text = "IP Address:";
             // 
-            // Form1
+            // ControlForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -672,11 +673,12 @@ namespace Bridge_full
             this.Controls.Add(this.groupBox4);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MinimumSize = new System.Drawing.Size(303, 397);
-            this.Name = "Form1";
+            this.Name = "ControlForm";
             this.Text = "Selvage Tension Control";
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
-            this.Load += new System.EventHandler(this.Form1_Load);
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.ControlForm_FormClosing);
+            this.Load += new System.EventHandler(this.ControlForm_Load);
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.groupBox2.ResumeLayout(false);

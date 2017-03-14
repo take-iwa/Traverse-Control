@@ -1,0 +1,18 @@
+オサ制御
+
+<制御タイミング>
+	1. センサーからの値がしきい値上限を？秒間超えた場合
+	2. センサーからの値がしきい値下限を？秒間下回った場合
+	3. センサーからの値を左右で比較して最大値が？％以上ズレた場合
+	以上を(サンプリング周波数x監視サンプリング数)時間毎に判断する
+
+
+Program(entry point)
+↓
+ControlForm(view,monitoring)
+↓↑
+TraverseControl(control)
+↓↑
+TcpManager(communication)
+↓↑
+PLC
