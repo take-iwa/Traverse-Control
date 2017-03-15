@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,10 +20,7 @@ namespace Bridge_full
         public void InitTraverseControl(string ipadr, int port)
         {
             // PLCの全データの取得
-            GetPlcAllData(ipadr, port);
-
-            // バックアップファイル作成
-            BackupPlcAllData();
+            BackupPlcAllData(ipadr, port);
         }
 
         // トラバース制御実行
@@ -286,28 +284,50 @@ namespace Bridge_full
             return rcv;
         }
 
-        // 全データ取得
-        private bool GetPlcAllData(string ipadr, int port)
+        // 全データ取得・保存
+        private void BackupPlcAllData(string ipadr, int port)
         {
-            var result = false;
-            var regList = new List<Byte[]>();
+            var regDict = new Dictionary<String, short>
+            {
+                { "オサ位置1", 0x0410 },
+                { "オサ位置2", 0x0411 },
+                { "警報", 0x0412 },
+                { "オサ開く", 0x0413 },
+                { "オサ閉じる", 0x0414 },
+                { "速度1", 0x044C },
+                { "速度2", 0x044D },
+                { "張力1", 0x044E },
+                { "張力2", 0x044F },
+                { "トラバース位置1", 0x0450 },
+                { "トラバース位置2", 0x0451 },
+                { "トラバース速度", 0x089B },
+                { "オサ移動幅", 0x089C },
+                { "ピッチ幅", 0x089D }
+            };
 
-            regList.Add();
+            // 出力ファイル
+            var filePath = @"./backup/PlcData_backup.txt";
+            var sw = new StreamWriter(filePath, false, Encoding.GetEncoding("UTF-8"));
 
-            Byte[] getCmd = MakeCommandData(regAdr, 0x03);
-            long rcv = GetPlcValue(ipadr, port, getCmd);
+            try
+            {
+                foreach (KeyValuePair<String, short> pair in regDict)
+                {
+                    Byte[] regAdr = new Byte[2];
+                    regAdr[1] = (byte)pair.Value;
+                    regAdr[0] = (byte)(pair.Value >> 8);
 
-            return result;
-        }
-
-        // 全データバックアップ
-        private bool BackupPlcAllData()
-        {
-            var result = false;
-
-
-
-            return result;
+                    Byte[] getCmd = MakeCommandData(regAdr, 0x09);
+                    long rcv = GetPlcValue(ipadr, port, getCmd);
+                    
+                    var text = pair.Key + ": 0x" + rcv.ToString("x4") + "\r\n";
+                    sw.Write(text);
+                }
+            }
+            finally
+            {
+                sw.Close();
+            }
         }
 
         /* ----------------コマンド系-------------------------------- */
@@ -366,7 +386,7 @@ namespace Bridge_full
             sendbuf[19] = regAdr[0];     // Adr(H)
 
             // レジスタ数設定
-            sendbuf[20] = 0x01;     // DataNum(L)
+            sendbuf[20] = cmd == 9 ? (byte)0x02:(byte)0x01;     // DataNum(L)
             sendbuf[21] = 0x00;     // DataNum(H)
 
             return sendbuf;
@@ -399,7 +419,7 @@ namespace Bridge_full
                 return (rc);
             }
             // 伝文中の全データ長のチェック
-            if ((resbuf[6] != (12 + 1)) && (resbuf[7] != 0x00)) // 40 バイト = 218 ヘッダ (12 バイト )+ メモバスデータ (28 バイト )
+            if ((resbuf[6] != (20 + cmdbuf[20] * 2)) && (resbuf[7] != 0x00)) // 218 ヘッダ (12 バイト )+ メモバスデータ(8バイト) + レジスタ数ｘ2
             {
                 rc = -4;
                 return (rc);
