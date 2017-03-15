@@ -43,6 +43,7 @@ namespace Bridge_full
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.initialRightValueTxt = new System.Windows.Forms.TextBox();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.CalibStartBtn = new System.Windows.Forms.Button();
             this.RightIntercept = new System.Windows.Forms.TextBox();
             this.LeftIntercept = new System.Windows.Forms.TextBox();
             this.RightSlope = new System.Windows.Forms.TextBox();
@@ -231,7 +232,7 @@ namespace Bridge_full
             // 
             // initialRightValueTxt
             // 
-            this.initialRightValueTxt.Location = new System.Drawing.Point(201, 156);
+            this.initialRightValueTxt.Location = new System.Drawing.Point(200, 138);
             this.initialRightValueTxt.Name = "initialRightValueTxt";
             this.initialRightValueTxt.Size = new System.Drawing.Size(54, 19);
             this.initialRightValueTxt.TabIndex = 96;
@@ -239,6 +240,7 @@ namespace Bridge_full
             // groupBox3
             // 
             this.groupBox3.BackColor = System.Drawing.SystemColors.Control;
+            this.groupBox3.Controls.Add(this.CalibStartBtn);
             this.groupBox3.Controls.Add(this.RightIntercept);
             this.groupBox3.Controls.Add(this.LeftIntercept);
             this.groupBox3.Controls.Add(this.RightSlope);
@@ -248,12 +250,22 @@ namespace Bridge_full
             this.groupBox3.Controls.Add(this.label22);
             this.groupBox3.Controls.Add(this.label23);
             this.groupBox3.ForeColor = System.Drawing.SystemColors.ControlText;
-            this.groupBox3.Location = new System.Drawing.Point(14, 209);
+            this.groupBox3.Location = new System.Drawing.Point(6, 192);
             this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(241, 91);
+            this.groupBox3.Size = new System.Drawing.Size(263, 108);
             this.groupBox3.TabIndex = 95;
             this.groupBox3.TabStop = false;
-            this.groupBox3.Text = "Calibretion";
+            this.groupBox3.Text = "Calibration";
+            // 
+            // CalibStartBtn
+            // 
+            this.CalibStartBtn.Location = new System.Drawing.Point(78, 79);
+            this.CalibStartBtn.Name = "CalibStartBtn";
+            this.CalibStartBtn.Size = new System.Drawing.Size(104, 23);
+            this.CalibStartBtn.TabIndex = 97;
+            this.CalibStartBtn.Text = "Calibration";
+            this.CalibStartBtn.UseVisualStyleBackColor = true;
+            this.CalibStartBtn.Click += new System.EventHandler(this.CalibStartBtn_Click);
             // 
             // RightIntercept
             // 
@@ -326,9 +338,9 @@ namespace Bridge_full
             this.tensionMonitor.Controls.Add(this.rightState);
             this.tensionMonitor.Controls.Add(this.leftState);
             this.tensionMonitor.ForeColor = System.Drawing.SystemColors.ControlText;
-            this.tensionMonitor.Location = new System.Drawing.Point(14, 306);
+            this.tensionMonitor.Location = new System.Drawing.Point(6, 306);
             this.tensionMonitor.Name = "tensionMonitor";
-            this.tensionMonitor.Size = new System.Drawing.Size(241, 60);
+            this.tensionMonitor.Size = new System.Drawing.Size(263, 60);
             this.tensionMonitor.TabIndex = 95;
             this.tensionMonitor.TabStop = false;
             this.tensionMonitor.Text = "Tension Monitor";
@@ -338,7 +350,7 @@ namespace Bridge_full
             this.widthState.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)));
             this.widthState.BackColor = System.Drawing.Color.GreenYellow;
             this.widthState.Font = new System.Drawing.Font("MS UI Gothic", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.widthState.Location = new System.Drawing.Point(66, 18);
+            this.widthState.Location = new System.Drawing.Point(79, 18);
             this.widthState.Name = "widthState";
             this.widthState.Size = new System.Drawing.Size(109, 33);
             this.widthState.TabIndex = 2;
@@ -350,7 +362,7 @@ namespace Bridge_full
             this.rightState.BackColor = System.Drawing.Color.GreenYellow;
             this.rightState.Font = new System.Drawing.Font("MS UI Gothic", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.rightState.ForeColor = System.Drawing.SystemColors.ControlText;
-            this.rightState.Location = new System.Drawing.Point(178, 18);
+            this.rightState.Location = new System.Drawing.Point(202, 18);
             this.rightState.Name = "rightState";
             this.rightState.Size = new System.Drawing.Size(50, 33);
             this.rightState.TabIndex = 1;
@@ -361,7 +373,7 @@ namespace Bridge_full
             // 
             this.leftState.BackColor = System.Drawing.Color.GreenYellow;
             this.leftState.Font = new System.Drawing.Font("MS UI Gothic", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.leftState.Location = new System.Drawing.Point(13, 18);
+            this.leftState.Location = new System.Drawing.Point(15, 18);
             this.leftState.Name = "leftState";
             this.leftState.Size = new System.Drawing.Size(50, 33);
             this.leftState.TabIndex = 0;
@@ -386,7 +398,7 @@ namespace Bridge_full
             // 
             // permiRangeTxt
             // 
-            this.permiRangeTxt.Location = new System.Drawing.Point(138, 184);
+            this.permiRangeTxt.Location = new System.Drawing.Point(137, 166);
             this.permiRangeTxt.Name = "permiRangeTxt";
             this.permiRangeTxt.Size = new System.Drawing.Size(117, 19);
             this.permiRangeTxt.TabIndex = 94;
@@ -395,16 +407,16 @@ namespace Bridge_full
             // label8
             // 
             this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(11, 187);
+            this.label8.Location = new System.Drawing.Point(10, 169);
             this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(116, 12);
+            this.label8.Size = new System.Drawing.Size(122, 12);
             this.label8.TabIndex = 93;
-            this.label8.Text = "Permissible Range(%):";
+            this.label8.Text = "Permissible Range(Å}):";
             // 
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(27, 159);
+            this.label7.Location = new System.Drawing.Point(26, 141);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(100, 12);
             this.label7.TabIndex = 92;
@@ -412,7 +424,7 @@ namespace Bridge_full
             // 
             // initialLeftValueTxt
             // 
-            this.initialLeftValueTxt.Location = new System.Drawing.Point(138, 156);
+            this.initialLeftValueTxt.Location = new System.Drawing.Point(137, 138);
             this.initialLeftValueTxt.Name = "initialLeftValueTxt";
             this.initialLeftValueTxt.Size = new System.Drawing.Size(54, 19);
             this.initialLeftValueTxt.TabIndex = 91;
@@ -440,7 +452,7 @@ namespace Bridge_full
             // label14
             // 
             this.label14.AutoSize = true;
-            this.label14.Location = new System.Drawing.Point(136, 65);
+            this.label14.Location = new System.Drawing.Point(136, 50);
             this.label14.Name = "label14";
             this.label14.Size = new System.Drawing.Size(30, 12);
             this.label14.TabIndex = 57;
@@ -458,7 +470,7 @@ namespace Bridge_full
             "32",
             "64",
             "128"});
-            this.gainCmb.Location = new System.Drawing.Point(174, 62);
+            this.gainCmb.Location = new System.Drawing.Point(174, 47);
             this.gainCmb.Name = "gainCmb";
             this.gainCmb.Size = new System.Drawing.Size(81, 20);
             this.gainCmb.TabIndex = 58;
@@ -467,7 +479,7 @@ namespace Bridge_full
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(21, 131);
+            this.label6.Location = new System.Drawing.Point(20, 113);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(106, 12);
             this.label6.TabIndex = 79;
@@ -475,7 +487,7 @@ namespace Bridge_full
             // 
             // rightValueTxt
             // 
-            this.rightValueTxt.Location = new System.Drawing.Point(138, 128);
+            this.rightValueTxt.Location = new System.Drawing.Point(137, 110);
             this.rightValueTxt.Name = "rightValueTxt";
             this.rightValueTxt.ReadOnly = true;
             this.rightValueTxt.Size = new System.Drawing.Size(117, 19);
@@ -509,7 +521,7 @@ namespace Bridge_full
             // label11
             // 
             this.label11.AutoSize = true;
-            this.label11.Location = new System.Drawing.Point(24, 103);
+            this.label11.Location = new System.Drawing.Point(23, 85);
             this.label11.Name = "label11";
             this.label11.Size = new System.Drawing.Size(103, 12);
             this.label11.TabIndex = 63;
@@ -517,7 +529,7 @@ namespace Bridge_full
             // 
             // leftValueTxt
             // 
-            this.leftValueTxt.Location = new System.Drawing.Point(138, 100);
+            this.leftValueTxt.Location = new System.Drawing.Point(137, 82);
             this.leftValueTxt.Name = "leftValueTxt";
             this.leftValueTxt.ReadOnly = true;
             this.leftValueTxt.Size = new System.Drawing.Size(117, 19);
@@ -527,7 +539,7 @@ namespace Bridge_full
             // 
             this.enCheck.AutoSize = true;
             this.enCheck.Enabled = false;
-            this.enCheck.Location = new System.Drawing.Point(14, 64);
+            this.enCheck.Location = new System.Drawing.Point(41, 49);
             this.enCheck.Name = "enCheck";
             this.enCheck.RightToLeft = System.Windows.Forms.RightToLeft.No;
             this.enCheck.Size = new System.Drawing.Size(64, 16);
@@ -750,6 +762,7 @@ namespace Bridge_full
         private System.Windows.Forms.Label label10;
         private System.Windows.Forms.Label label9;
         private System.Windows.Forms.TextBox textBox3;
+        private System.Windows.Forms.Button CalibStartBtn;
     }
 }
 
