@@ -66,7 +66,26 @@ namespace Bridge_full
             br.BridgeData += new BridgeDataEventHandler(Br_Data);
 
             OpenCmdLine(br);
+            
+            // 構成ファイルから設定取得
+            var appPath = Assembly.GetExecutingAssembly().Location;
+            var configPath = Path.GetDirectoryName(appPath);
+            var configFile = configPath + "\\app.config";
+            var exeFileMap = new ExeConfigurationFileMap { ExeConfigFilename = configFile };
+            var config = ConfigurationManager.OpenMappedExeConfiguration(exeFileMap, ConfigurationUserLevel.None);
 
+            RightIntercept.Text = config.AppSettings.Settings["Calib_R_y"].Value;
+            LeftIntercept.Text = config.AppSettings.Settings["Calib_L_y"].Value;
+            RightSlope.Text = config.AppSettings.Settings["Calib_R_x"].Value;
+            LeftSlope.Text = config.AppSettings.Settings["Calib_L_x"].Value;
+            
+            IpAddressBox.Text = config.AppSettings.Settings["PlcIpAdr"].Value;
+            PortBox.Text = config.AppSettings.Settings["PlcPort"].Value;
+
+            //トラバース制御データ一式バックアップ
+            TraverseController ctl = new TraverseController();
+            ctl.InitTraverseControl(IpAddressBox.Text, Int32.Parse(PortBox.Text));
+            
             // ログ出力設定
             IntLogging();
         }
@@ -101,27 +120,21 @@ namespace Bridge_full
             RightSlope.Enabled = true;
             LeftSlope.Enabled = true;
 
-            // 構成ファイルから取得
-            bridgeCmbL.SelectedIndex = Int32.Parse(ConfigurationManager.AppSettings.Get("BridgeChoice_L"));
-            bridgeCmbR.SelectedIndex = Int32.Parse(ConfigurationManager.AppSettings.Get("BridgeChoice_R"));
+            // 構成ファイルからブリッジの設定取得
+            var appPath = Assembly.GetExecutingAssembly().Location;
+            var configPath = Path.GetDirectoryName(appPath);
+            var configFile = configPath + "\\app.config";
+            var exeFileMap = new ExeConfigurationFileMap { ExeConfigFilename = configFile };
+            var config = ConfigurationManager.OpenMappedExeConfiguration(exeFileMap, ConfigurationUserLevel.None);
+            bridgeCmbL.SelectedIndex = Int32.Parse(config.AppSettings.Settings["BridgeChoice_L"].Value);
+            bridgeCmbR.SelectedIndex = Int32.Parse(config.AppSettings.Settings["BridgeChoice_R"].Value);
 
-            gainCmb.Text = ConfigurationManager.AppSettings.Get("GainIndex");
+            gainCmb.Text = config.AppSettings.Settings["GainIndex"].Value;
 
-            RightIntercept.Text = ConfigurationManager.AppSettings.Get("Calib_R_y");
-            LeftIntercept.Text = ConfigurationManager.AppSettings.Get("Calib_L_y");
-            RightSlope.Text = ConfigurationManager.AppSettings.Get("Calib_R_x");
-            LeftSlope.Text = ConfigurationManager.AppSettings.Get("Calib_L_x");
-
-            br.DataRate = Int32.Parse(ConfigurationManager.AppSettings.Get("DataRng"));
-            dataRateBar.Value = br.DataRate / 8;
-            dataRateBox.Text = br.DataRate.ToString();
-
-            IpAddressBox.Text = ConfigurationManager.AppSettings.Get("PlcIpAdr");
-            PortBox.Text = ConfigurationManager.AppSettings.Get("PlcPort");
-
-            // トラバース制御データ一式バックアップ
-            TraverseController ctl = new TraverseController();
-            ctl.InitTraverseControl(IpAddressBox.Text, Int32.Parse(PortBox.ToString()));
+            dataRateBox.Text = config.AppSettings.Settings["DataRng"].Value;
+            dataRateBar.Value = Int32.Parse(dataRateBox.Text.ToString()) / 8;
+            br.DataRate = dataRateBar.Value;
+                
         }
 
         // 切断　Bridge Detach event handler...Clear all the fields and disable all the controls
@@ -780,24 +793,37 @@ namespace Bridge_full
             br = null;
 
             // 現在の設定を構成ファイルに保存
-            //var configFile = @"../../../app.config";
-            //var exeFileMap = new ExeConfigurationFileMap { ExeConfigFilename = configFile };
-            //var config = ConfigurationManager.OpenMappedExeConfiguration(exeFileMap, ConfigurationUserLevel.None);
-            var config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-            config.AppSettings.Settings["BridgeChoice_L"].Value = bridgeCmbL.SelectedIndex.ToString() ?? "0";
-            config.AppSettings.Settings["BridgeChoice_R"].Value = bridgeCmbR.SelectedIndex.ToString() ?? "0";
-            config.AppSettings.Settings["GainIndex"].Value = gainCmb.SelectedIndex.ToString() ?? "0";
-            config.AppSettings.Settings["InitVal_L"].Value = initialLeftValueTxt.ToString() ?? "0";
-            config.AppSettings.Settings["InitVal_R"].Value = initialRightValueTxt.ToString() ?? "0";
-            config.AppSettings.Settings["PermRng"].Value = permiRangeTxt.ToString() ?? "0";
-            config.AppSettings.Settings["Calib_L_x"].Value = LeftSlope.ToString() ?? "0";
-            config.AppSettings.Settings["Calib_L_y"].Value = LeftIntercept.ToString() ?? "0";
-            config.AppSettings.Settings["Calib_R_x"].Value = RightSlope.ToString() ?? "0";
-            config.AppSettings.Settings["Calib_R_y"].Value = RightIntercept.ToString() ?? "0";
-            config.AppSettings.Settings["DataRng"].Value = dataRateBox.ToString() ?? "0";
-            config.AppSettings.Settings["PlcIpAdr"].Value = IpAddressBox.ToString() ?? "0";
-            config.AppSettings.Settings["PlcPort"].Value = PortBox.ToString() ?? "0";
-            config.Save();
+            try
+            {
+                // 出力ファイル
+                var appPath = Assembly.GetExecutingAssembly().Location;
+                var configPath = Path.GetDirectoryName(appPath);
+                var configFile = configPath + "\\app.config";
+                var exeFileMap = new ExeConfigurationFileMap { ExeConfigFilename = configFile };
+                var config = ConfigurationManager.OpenMappedExeConfiguration(exeFileMap, ConfigurationUserLevel.None);
+                if (bridgeCmbL.SelectedIndex >= 0)
+                {
+                    config.AppSettings.Settings["BridgeChoice_L"].Value = bridgeCmbL.SelectedIndex.ToString();
+                    config.AppSettings.Settings["BridgeChoice_R"].Value = bridgeCmbR.SelectedIndex.ToString();
+                    config.AppSettings.Settings["GainIndex"].Value = gainCmb.SelectedIndex.ToString();
+                    config.AppSettings.Settings["InitVal_L"].Value = initialLeftValueTxt.Text.ToString();
+                    config.AppSettings.Settings["InitVal_R"].Value = initialRightValueTxt.Text.ToString();
+                    config.AppSettings.Settings["PermRng"].Value = permiRangeTxt.Text.ToString();
+                    config.AppSettings.Settings["Calib_L_x"].Value = LeftSlope.Text.ToString();
+                    config.AppSettings.Settings["Calib_L_y"].Value = LeftIntercept.Text.ToString();
+                    config.AppSettings.Settings["Calib_R_x"].Value = RightSlope.Text.ToString();
+                    config.AppSettings.Settings["Calib_R_y"].Value = RightIntercept.Text.ToString();
+                    config.AppSettings.Settings["DataRng"].Value = dataRateBox.Text.ToString();
+                    config.AppSettings.Settings["PlcIpAdr"].Value = IpAddressBox.Text.ToString();
+                    config.AppSettings.Settings["PlcPort"].Value = PortBox.Text.ToString();
+                    config.Save();
+                }
+            }
+
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
         }
         
         // コマンドラインから　Parses command line arguments and calls the appropriate open

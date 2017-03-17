@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -306,7 +307,17 @@ namespace Bridge_full
             };
 
             // 出力ファイル
-            var filePath = @"./backup/PlcData_backup.txt";
+            var appPath = Assembly.GetExecutingAssembly().Location;
+            var logPath = Path.GetDirectoryName(appPath) + "\\backup";
+            if (!Directory.Exists(logPath))
+            {
+                Directory.CreateDirectory(logPath);
+            }
+            Directory.SetCurrentDirectory(logPath);
+
+            // logファイル名更新
+            var filePath = logPath + "\\PLC-Data_backup.txt";
+
             var sw = new StreamWriter(filePath, false, Encoding.GetEncoding("UTF-8"));
 
             try

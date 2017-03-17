@@ -28,7 +28,7 @@ namespace Bridge_full
         /*------------------------------------*/
         public Byte[] SendTcpClient(String server, Int32 port, Byte[] command)
         {
-            Byte[] data = new Byte[2048];
+            Byte[] data = new Byte[256];
 
             try
             {
