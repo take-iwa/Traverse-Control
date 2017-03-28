@@ -38,7 +38,16 @@ namespace Bridge_full
                 // 接続
                 if (tcpClient == null)
                 {
-                    tcpClient = new TcpClient(server, port);
+                    IPEndPoint ipLocalEndPoint = new IPEndPoint(IPAddress.Any, 2049);
+                    TcpClient tcpClient = new TcpClient(ipLocalEndPoint);
+                    tcpClient.Connect(server, port);
+
+                    //tcpClient = new TcpClient(server, port);
+                    Console.WriteLine("サーバー({0}:{1})と接続しました({2}:{3})。",
+                    ((System.Net.IPEndPoint)tcpClient.Client.RemoteEndPoint).Address,
+                    ((System.Net.IPEndPoint)tcpClient.Client.RemoteEndPoint).Port,
+                    ((System.Net.IPEndPoint)tcpClient.Client.LocalEndPoint).Address,
+                    ((System.Net.IPEndPoint)tcpClient.Client.LocalEndPoint).Port);
                     stream = tcpClient.GetStream();
                 }
 
